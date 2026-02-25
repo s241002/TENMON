@@ -7,8 +7,9 @@ app = Flask(__name__)
 ts = load.timescale()
 planets = load('de421.bsp')
 
-@app.route("/stars")
-def stars():
+@app.route("/")
+def home():
+    return "API is running"
     lat = float(request.args.get("lat"))
     lon = float(request.args.get("lon"))
 
@@ -36,4 +37,5 @@ def stars():
     return jsonify(result)
 
 if __name__ == "__main__":
+
     app.run()
