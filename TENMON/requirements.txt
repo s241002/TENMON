@@ -1,0 +1,5 @@
+flask
+gunicorn
+skyfield
+pandas
+numpy
