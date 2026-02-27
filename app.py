@@ -22,4 +22,12 @@ def home():
 
 @app.route("/stars")
 def stars():
-    return {"status": "alive"}
+    lat = request.args.get("lat")
+    lon = request.args.get("lon")
+    direction = request.args.get("dir", 0)
+
+    return {
+        "lat": lat,
+        "lon": lon,
+        "dir": direction
+    }
