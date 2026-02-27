@@ -12,7 +12,7 @@ STARS = [
 ]
 
 # 30個に増やす
-for i in range(5, 10):
+for i in range(5, 15):
     STARS.append({
         "id": i,
         "name": f"Star{i}",
