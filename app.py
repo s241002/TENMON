@@ -25,9 +25,9 @@ def stars():
     lat = request.args.get("lat")
     lon = request.args.get("lon")
     direction = request.args.get("dir", 0)
-
     return {
-        "lat": lat,
-        "lon": lon,
-        "dir": direction
+        "stars": [
+            {"name": "Betelgeuse", "x": 100, "y": 120},
+            {"name": "Rigel", "x": 150, "y": 200}
+        ]
     }
