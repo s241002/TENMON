@@ -1,3 +1,32 @@
+import random
+import time
+
+@app.route("/stress")
+def stress():
+    count = int(request.args.get("n"))
+
+    start = time.time()
+
+    result = []
+
+    for i in range(count):
+        # ダミー計算（星計算相当）
+        x = random.random() * 360
+        y = random.random() * 90
+
+        result.append({
+            "id": i,
+            "alt": y,
+            "az": x
+        })
+
+    elapsed = time.time() - start
+
+    return jsonify({
+        "count": count,
+        "time_sec": round(elapsed, 4)
+    })
+
 from flask import Flask, request, jsonify
 from skyfield.api import load, Topos, Star
 
