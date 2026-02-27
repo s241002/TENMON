@@ -1,33 +1,40 @@
 from flask import Flask, request, jsonify
-from skyfield.api import load, Topos, Star
 
 app = Flask(__name__)
 
-ts = load.timescale()
-eph = load('de421.bsp')
-earth = eph['earth']
-
-# ⭐ 明るい恒星
-BRIGHT_STARS = [
-    {"name": "Sirius", "ra": 6.752, "dec": -16.716},
-    {"name": "Canopus", "ra": 6.399, "dec": -52.695},
-    {"name": "Arcturus", "ra": 14.261, "dec": 19.182},
-    {"name": "Vega", "ra": 18.615, "dec": 38.783},
-    {"name": "Capella", "ra": 5.279, "dec": 45.997},
+# ⭐ 固定星データ（とりあえず30個ダミー）
+STARS = [
+    {"id": 0, "name": "Star0", "x": 50, "y": 40},
+    {"id": 1, "name": "Star1", "x": 80, "y": 60},
+    {"id": 2, "name": "Star2", "x": 120, "y": 90},
+    {"id": 3, "name": "Star3", "x": 150, "y": 120},
+    {"id": 4, "name": "Star4", "x": 180, "y": 140},
 ]
+
+# 30個に増やす
+for i in range(5, 30):
+    STARS.append({
+        "id": i,
+        "name": f"Star{i}",
+        "x": (i * 13) % 320,
+        "y": (i * 17) % 240
+    })
+
 
 @app.route("/")
 def home():
-    return "Star AR API running"
+    return "Star API running"
+
 
 @app.route("/stars")
 def stars():
-    lat = request.args.get("lat")
-    lon = request.args.get("lon")
-    direction = request.args.get("dir", 0)
-    return {
-        "stars": [
-            {"name": "Betelgeuse", "x": 100, "y": 120},
-            {"name": "Rigel", "x": 150, "y": 200}
-        ]
-    }
+    return jsonify({
+        "count": len(STARS),
+        "stars": STARS
+    })
+
+
+if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
