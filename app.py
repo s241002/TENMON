@@ -1,14 +1,20 @@
 from flask import Flask, request, jsonify
 from skyfield.api import load, Topos, Star
-from skyfield.data import hipparcos
 
 app = Flask(__name__)
 
 ts = load.timescale()
-
-# ★ ここが重要：Ephemerisは一度だけロード
 eph = load('de421.bsp')
 earth = eph['earth']
+
+# ⭐ 明るい恒星だけ手動登録（RA/Dec）
+BRIGHT_STARS = [
+    {"name": "Sirius", "ra": 6.752, "dec": -16.716},
+    {"name": "Canopus", "ra": 6.399, "dec": -52.695},
+    {"name": "Arcturus", "ra": 14.261, "dec": 19.182},
+    {"name": "Vega", "ra": 18.615, "dec": 38.783},
+    {"name": "Capella", "ra": 5.279, "dec": 45.997},
+]
 
 @app.route("/")
 def home():
@@ -23,23 +29,16 @@ def stars():
                              longitude_degrees=lon)
 
     t = ts.now()
-
-    with load.open(hipparcos.URL) as f:
-        df = hipparcos.load_dataframe(f)
-
-    # 明るい星だけ（1.5等星まで）
-    bright = df[df['magnitude'] < 1.5]
-
     result = []
 
-    for hip, row in bright.iterrows():
-        star = Star.from_dataframe(row)
+    for s in BRIGHT_STARS:
+        star = Star(ra_hours=s["ra"], dec_degrees=s["dec"])
         astrometric = observer.at(t).observe(star)
         alt, az, distance = astrometric.apparent().altaz()
 
         if alt.degrees > 0:
             result.append({
-                "name": str(hip),
+                "name": s["name"],
                 "alt": round(alt.degrees, 2),
                 "az": round(az.degrees, 2)
             })
