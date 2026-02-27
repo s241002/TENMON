@@ -53,7 +53,7 @@ def home():
 def stars():
     lat = float(request.args.get("lat"))
     lon = float(request.args.get("lon"))
-    direction = float(request.args.get("dir"))  # ← 追加
+    direction = float(request.args.get("dir",0))  # ← 追加
 
     observer = earth + Topos(latitude_degrees=lat,
                              longitude_degrees=lon)
