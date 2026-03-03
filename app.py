@@ -48,8 +48,8 @@ def get_stars():
     # 視野内の星を取得
     visible_stars = []
     for star in stars:
-        az = star.get("az")  # ここは az/alt を事前に入れておくと簡単
-        alt = star.get("alt")
+        az = star.get("r")  # ここは az/alt を事前に入れておくと簡単
+        alt = star.get("d")
         if az is None or alt is None:
             continue
         pos = sky_to_screen(az, alt, center_az, center_alt, fov)
@@ -59,8 +59,8 @@ def get_stars():
         visible_stars.append({
             "x": x,
             "y": y,
-            "mag": star.get("mag", 5),
-            "name": star.get("name", "")
+            "mag": star.get("m", 5),
+            "name": star.get("n", "")
         })
 
     # 等級順にソートして上位20個
