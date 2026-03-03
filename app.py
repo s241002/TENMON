@@ -1,80 +1,74 @@
-from flask import Flask, request, jsonify
+# app.py
+import os
 import json
-import math
+from flask import Flask, jsonify
 
 app = Flask(__name__)
 
-# 星データをロード
-with open("stars_mag4_light.json", "r", encoding="utf-8") as f:
-    stars = json.load(f)
+# --- JSON ファイルを絶対パスで読み込む ---
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+stars_file = os.path.join(BASE_DIR, "stars_mag4_light.json")
+lines_file = os.path.join(BASE_DIR, "constellation_lines.json")
 
-# 星座線データをロード
-with open("constellation_lines.json", "r", encoding="utf-8") as f:
-    lines = json.load(f)
+with open(stars_file, "r", encoding="utf-8") as f:
+    stars_data = json.load(f)
 
-# スクリーン変換（簡易版）
-def sky_to_screen(az, alt, center_az, center_alt, fov):
-    """
-    az, alt, center_az, center_alt, fov は全て度
-    """
-    # 視野の中心との差
-    dx = az - center_az
-    dy = alt - center_alt
+with open(lines_file, "r", encoding="utf-8") as f:
+    lines_data = json.load(f)
 
-    # 360度ラップ調整
-    if dx > 180:
-        dx -= 360
-    elif dx < -180:
-        dx += 360
-
-    # 視野角フィルタ
-    if abs(dx) > fov/2 or abs(dy) > fov/2:
-        return None
-
-    # 正規化座標 -1~1
-    x = dx / (fov/2)
-    y = dy / (fov/2)
+# --- デバッグ用：画面座標簡易計算 ---
+def sky_to_screen_debug(ra, dec, width=240, height=240):
+    # RA/Dec を 0-360 / -90~90 に正規化して画面座標に変換
+    x = (ra % 360) / 360 * width
+    y = (90 - dec) / 180 * height
     return x, y
+
+# --- 星のサイズ（等級から） ---
+def mag_to_size(mag):
+    return max(1, int(6 - mag))  # 1~5 の範囲
 
 @app.route("/get_stars")
 def get_stars():
     try:
-        center_az = float(request.args.get("azimuth"))
-        center_alt = float(request.args.get("altitude"))
-        fov = float(request.args.get("fov"))
-    except:
-        return jsonify({"error": "invalid parameters"}), 400
+        # デバッグ用：すべての星を返す
+        visible_stars = []
+        hip_map = {}
+        for star in stars_data:
+            ra = star.get("r", 0)
+            dec = star.get("d", 0)
+            hip = star.get("h", None)
+            name = star.get("n", "")
+            mag = star.get("m", 5)
 
-    # 視野内の星を取得
-    visible_stars = []
-    for star in stars:
-        az = star.get("az")  # ここは az/alt を事前に入れておくと簡単
-        alt = star.get("alt")
-        if az is None or alt is None:
-            continue
-        pos = sky_to_screen(az, alt, center_az, center_alt, fov)
-        if pos is None:
-            continue
-        x, y = pos
-        visible_stars.append({
-            "x": x,
-            "y": y,
-            "mag": star.get("mag", 5),
-            "name": star.get("name", "")
-        })
+            x, y = sky_to_screen_debug(ra, dec)
+            size = mag_to_size(mag)
 
-    # 等級順にソートして上位20個
-    visible_stars.sort(key=lambda s: s["mag"])
-    visible_stars = visible_stars[:20]
+            star_entry = {
+                "x": x, "y": y, "size": size,
+                "name": name, "mag": mag, "hip": hip
+            }
+            visible_stars.append(star_entry)
+            if hip is not None:
+                hip_map[hip] = star_entry
 
-    # 星座線フィルタ
-    visible_lines = []
-    star_ids_in_view = {s.get("id") for s in visible_stars if "id" in s}
-    for line in lines:
-        if line.get("from") in star_ids_in_view and line.get("to") in star_ids_in_view:
-            visible_lines.append(line)
+        # --- 星座線 ---
+        visible_lines = []
+        for line in lines_data:
+            hip1 = line.get("from")
+            hip2 = line.get("to")
+            if hip1 in hip_map and hip2 in hip_map:
+                star1 = hip_map[hip1]
+                star2 = hip_map[hip2]
+                visible_lines.append({
+                    "x1": star1["x"], "y1": star1["y"],
+                    "x2": star2["x"], "y2": star2["y"]
+                })
 
-    return jsonify({"stars": visible_stars, "lines": visible_lines})
+        return jsonify({"stars": visible_stars, "lines": visible_lines})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
