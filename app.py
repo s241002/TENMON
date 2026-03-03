@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify
 import json
-import math
 
 app = Flask(__name__)
 
@@ -12,17 +11,19 @@ with open("stars_mag4_light.json", "r", encoding="utf-8") as f:
 with open("constellation_lines.json", "r", encoding="utf-8") as f:
     lines = json.load(f)
 
+# 画面サイズ・星サイズ範囲・等級範囲
 SCREEN_WIDTH = 320
 SCREEN_HEIGHT = 240
 SIZE_MIN = 0.1
 SIZE_MAX = 2.0
-MAG_MIN = 1.0  # 最大等級(明るい)
-MAG_MAX = 6.0  # 最小等級(暗い)
+MAG_MIN = 1.0  # 明るい星
+MAG_MAX = 6.0  # 暗い星
 
 def ra_dec_to_screen(ra, dec, center_ra, center_dec, fov):
     """
-    ra, dec, center_ra, center_dec は度
-    fov は視野角(deg)
+    RA/Dec を簡易スクリーン座標に変換
+    ra, dec, center_ra, center_dec, fov は全て度
+    x=0~320, y=0~240
     """
     dx = ra - center_ra
     dy = dec - center_dec
@@ -37,42 +38,14 @@ def ra_dec_to_screen(ra, dec, center_ra, center_dec, fov):
     if abs(dx) > fov/2 or abs(dy) > fov/2:
         return None
 
-    # スクリーン座標に正規化
-    x = ((dx / (fov/2)) + 1) * 160  # 0~320
-    y = ((-dy / (fov/2)) + 1) * 120 # 0~240
-    x = max(0, min(320, x))
-    y = max(0, min(240, y))
-    return x, y
-
-def sky_to_screen(az, alt, center_az, center_alt, fov):
-    """
-    az, alt, center_az, center_alt, fov は全て度
-    スクリーン座標 x=0~320, y=0~240
-    """
-    dx = az - center_az
-    dy = alt - center_alt
-
-    # 360度ラップ調整
-    if dx > 180:
-        dx -= 360
-    elif dx < -180:
-        dx += 360
-
-    # 視野角フィルタ
-    if abs(dx) > fov/2 or abs(dy) > fov/2:
-        return None
-
-    # スクリーン座標に変換
     x = ((dx / (fov/2)) + 1) * (SCREEN_WIDTH/2)
     y = ((-dy / (fov/2)) + 1) * (SCREEN_HEIGHT/2)
-    # 座標クリップ
     x = max(0, min(SCREEN_WIDTH, x))
     y = max(0, min(SCREEN_HEIGHT, y))
     return x, y
 
 def mag_to_size(mag):
     """等級を 0.1~2 に変換"""
-    # 明るい星は大きく、暗い星は小さく
     if mag < MAG_MIN: mag = MAG_MIN
     if mag > MAG_MAX: mag = MAG_MAX
     size = SIZE_MAX - (mag - MAG_MIN) / (MAG_MAX - MAG_MIN) * (SIZE_MAX - SIZE_MIN)
@@ -81,31 +54,30 @@ def mag_to_size(mag):
 @app.route("/get_stars")
 def get_stars():
     try:
-        center_az = float(request.args.get("azimuth"))
-        center_alt = float(request.args.get("altitude"))
+        center_ra = float(request.args.get("azimuth"))   # 中心RAをazimuthで指定
+        center_dec = float(request.args.get("altitude")) # 中心Decをaltitudeで指定
         fov = float(request.args.get("fov"))
     except:
         return jsonify({"error": "invalid parameters"}), 400
 
+    # 視野内の星を抽出
     visible_stars = []
     for star in stars:
-        az = star.get("az")
-        alt = star.get("alt")
-        if az is None or alt is None:
-            continue
-        pos = sky_to_screen(az, alt, center_az, center_alt, fov)
+        ra = star.get("r")
+        dec = star.get("d")
+        pos = ra_dec_to_screen(ra, dec, center_ra, center_dec, fov)
         if pos is None:
             continue
         x, y = pos
         visible_stars.append({
             "x": x,
             "y": y,
-            "size": mag_to_size(star.get("mag", 5)),
-            "name": star.get("name", ""),
-            "id": star.get("id")
+            "size": mag_to_size(star.get("m", 5)),
+            "name": star.get("n", ""),
+            "id": star.get("h")
         })
 
-    # 等級順にソートして上位 20 個
+    # サイズ順にソートして上位 20 個
     visible_stars.sort(key=lambda s: s["size"], reverse=True)
     visible_stars = visible_stars[:20]
 
