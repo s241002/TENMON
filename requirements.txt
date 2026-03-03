@@ -3,3 +3,4 @@ Flask
 numpy
 pandas
 gunicorn
+astropy>=6.3
