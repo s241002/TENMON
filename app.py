@@ -1,5 +1,3 @@
-
-    
 # app.py
 import os
 import json
@@ -89,6 +87,8 @@ def get_stars():
                 })
 
         return jsonify({"stars": visible_stars, "lines": visible_lines})
+        print(len(stars_data))
+        print(stars_data[:5])
 
     except Exception as e:
         # エラー内容を返す
