@@ -1,6 +1,5 @@
 skyfield
-Flask==2.3.3
-astropy==6.3.1
-numpy==1.26.1
+Flask
+numpy
 pandas
 gunicorn
