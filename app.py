@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import json
+import math
 
 app = Flask(__name__)
 
@@ -17,6 +18,31 @@ SIZE_MIN = 0.1
 SIZE_MAX = 2.0
 MAG_MIN = 1.0  # 最大等級(明るい)
 MAG_MAX = 6.0  # 最小等級(暗い)
+
+def ra_dec_to_screen(ra, dec, center_ra, center_dec, fov):
+    """
+    ra, dec, center_ra, center_dec は度
+    fov は視野角(deg)
+    """
+    dx = ra - center_ra
+    dy = dec - center_dec
+
+    # 360度ラップ
+    if dx > 180:
+        dx -= 360
+    elif dx < -180:
+        dx += 360
+
+    # 視野角チェック
+    if abs(dx) > fov/2 or abs(dy) > fov/2:
+        return None
+
+    # スクリーン座標に正規化
+    x = ((dx / (fov/2)) + 1) * 160  # 0~320
+    y = ((-dy / (fov/2)) + 1) * 120 # 0~240
+    x = max(0, min(320, x))
+    y = max(0, min(240, y))
+    return x, y
 
 def sky_to_screen(az, alt, center_az, center_alt, fov):
     """
