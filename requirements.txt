@@ -1,5 +1,5 @@
-flask
-gunicorn
+Flask
 skyfield
-pandas
 numpy
+pandas
+gunicorn
