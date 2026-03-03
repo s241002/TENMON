@@ -1,3 +1,5 @@
+
+    
 # app.py
 import os
 import json
@@ -57,7 +59,8 @@ def get_stars():
 
             pos = sky_to_screen(ra, dec, azimuth, altitude, fov)
             if pos is None:
-                continue
+                #continue
+                pos = (120, 120)
 
             x, y = pos
             size = mag_to_size(mag)
