@@ -58,6 +58,10 @@ def get_stars():
         name = star.get("name", "")
         mag = star.get("mag", 5)
 
+        # ra, dec が None ならスキップ
+        if ra is None or dec is None:
+            continue
+
         pos = sky_to_screen(ra, dec, azimuth, altitude, fov)
         if pos is None:
             continue
